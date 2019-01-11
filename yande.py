@@ -1,6 +1,7 @@
 import os  # 引入文件模块
 import re  # 正则表达式
 import urllib.request
+import multiprocessing
 
 
 # 连接网页并返回源码
@@ -15,7 +16,7 @@ def open_url(url):
         html = response.read()
         return html
     except Exception as e:
-        print(e, url + " 404")
+        print(e)
         return 404
 
 
@@ -49,35 +50,43 @@ def mkdir(path):
         return False
 
 
-def yande1():
-    pages1 = int(input('请输入你要下载的起始页面数：'))
-    pages2 = int(input('请输入你要下载的末尾页面数：'))
+def yande1(pages1, pages2, number):
     mkdir('img')
     for i in range(pages1, pages2 + 1):
         imgs = 1
         print(i)
         url = 'https://yande.re/post?page=' + str(i)
         # print(url)
-        floder = "E:\Python\爬虫\yande\img\page" + str(i)
-        mkdir(floder)
-        os.chdir(floder)
+        local_folder = os.path.split(os.path.realpath(__file__))[0]
+        folder = "{0}\\img\\page{1}".format(local_folder, i)
+        print("线程{0}".format(number))
+        mkdir(folder)
+        os.chdir(folder)
 
         html = open_url(url)
         html = html.decode('gbk', 'ignore')
-        # print(html)
-        img_adds = []
         img_adds = re.findall(r'<a class="directlink largeimg" href="([^"]+\.jpg)"', html)
-        for i in img_adds:
+        for j in img_adds:
             filename = str(imgs) + '.jpg'
             imgs += 1
-            img_html = open_url(i)
+            img_html = open_url(j)
             if img_html == 404:
                 continue
             with open(filename, 'wb') as f:
                 f.write(img_html)
-                print(i + '下载完成....')
-        # print(len(img_adds))
+                print("线程{0}".format(number))
+                print(j + '下载完成....')
 
 
 if __name__ == '__main__':
-    yande1()
+    number = int(input('请输入同步执行进程总数:'))
+    proc_process_sequence = []
+    for i in range(0, number):
+        print("进程{0}".format(i))
+        page1 = int(input('请输入你要下载的起始页面数：'))
+        page2 = int(input('请输入你要下载的末尾页面数：'))
+        proc_process_sequence.append(multiprocessing.Process(target=yande1, args=(page1, page2, i)))
+    for i in proc_process_sequence:
+        i.start()
+    for i in proc_process_sequence:
+        i.join()
